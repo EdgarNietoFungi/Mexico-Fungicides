@@ -1,0 +1,145 @@
+---
+title: "Thiophanate.Mexico"
+author: "Nieto_Lopez"
+date: "3/22/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, set packages, warning= FALSE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ezec)
+#library(NRES803)
+library(broom)
+library(ggridges)
+library(cowplot)
+library(gridExtra)
+library(kableExtra)
+library(arsenal)
+library(DescTools)
+library(knitr)
+library(agricolae)
+```
+
+#  Background   
+
+
+
+
+
+```{r read data, echo = FALSE}
+#
+##  Reading and subsetting data 
+macrophomina.data <-
+  read.csv("data/thiophanate.methyl.macrophomina.csv")
+ # macrophomina.data <- subset(macrophomina.data, select = -X)
+  macrophomina.data$repeats <- rep_len(1:3, length.out = nrow(macrophomina.data))
+  macrophomina.data$ID <- as.character(macrophomina.data$ID)
+  ####Transforming to $ID to numeric
+ macrophomina.data$ID <- as.numeric(macrophomina.data$ID)
+ 
+  macrophomina.data <- macrophomina.data %>%
+         mutate(polar= replace(polar, polar == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
+    mutate(ecuatorial= replace(ecuatorial, ecuatorial == 0, 6)) %>% #replacing 0 cm growth for the size of plug that is 0.6
+    group_by(ID, experimental_replicate, concentration, ecuatorial, polar, repeats) %>%
+    mutate(growth = ((ecuatorial + polar) / 2)) %>% 
+  rename(dose = concentration )
+  
+  ####
+  
+  sclerotium.data <-
+  read.csv("data/thiopahanate.methyl.sclerotium.rolfsii.csv")
+ # sclerotium.data <- subset(sclerotium.data, select = -X)
+  sclerotium.data$repeats <- rep_len(1:3, length.out = nrow(sclerotium.data))
+  sclerotium.data$ID <- as.character(sclerotium.data$ID)
+  ####Transforming to $ID to numeric
+ sclerotium.data$ID <- as.numeric(sclerotium.data$ID)
+ 
+  sclerotium.data <- sclerotium.data %>%
+         mutate(polar= replace(polar, polar == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
+    mutate(ecuatorial= replace(ecuatorial, ecuatorial == 0, 6)) %>% #replacing 0 cm growth for the size of plug that is 0.6
+    group_by(ID, experimental_replicate, concentration, ecuatorial, polar, repeats) %>%
+    mutate(growth = ((ecuatorial + polar) / 2)) %>% 
+  rename(dose = concentration )
+##########
+ 
+    
+```
+
+##  Statistic Analysis 
+
+
+In the following section we will show the results for each fungicide
+
+
+```{r function to take outliers from 6 observations, echo = FALSE}
+get_range <- function(mynumber) {
+  bb <- boxplot.stats(mynumber)
+  cc <- bb$stats
+  dd <- max(cc)
+  ee <- min(cc)
+  return(data.frame(upper = dd, lower = ee))
+}
+```
+#  Macrophomina
+## Serial dilution
+
+```{r Serial dilution Macrophomina, echo= FALSE, warning=FALSE}
+#Macrophomina thiophanate fungicide taking the outliers from the 6 observations of each one USING THE FUCTION 
+macrophomina.filtered  <- macrophomina.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>% 
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+
+
+# Getting EC50 by EC_table #
+xx <- EC_table(macrophomina.filtered, form = response ~ dose)
+
+macrophomina.xx <-
+  xx %>% rename(ID = sample ) %>% # renaming
+  rename(EC50 = Estimate.50) 
+   
+summary.macrophomina.xx <-summary(macrophomina.xx)
+
+write.csv(macrophomina.xx, file = "outputs/macrophomina.EC50.csv") 
+write.csv(summary.macrophomina.xx, file = "outputs/macrophomina.summary. EC50.csv") 
+
+```
+#  Sclerotium
+## Serial dilution
+
+```{r Serial dilution sclerotium, echo= FALSE, warning=FALSE}
+#Sclerotium thiophanate fungicide taking the outliers from the 6 observations of each one USING THE FUCTION 
+sclerotium.filtered  <- sclerotium.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>% 
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+
+
+# Getting EC50 by EC_table #
+yy <- EC_table(sclerotium.filtered, form = response ~ dose)
+
+sclerotium.yy <-
+  yy %>% rename(ID = sample ) %>% # renaming
+  rename(EC50 = Estimate.50) 
+   
+summary.sclerotium.yy <-summary(sclerotium.yy)
+
+write.csv(sclerotium.yy, file = "outputs/sclerotium.EC50.csv") 
+write.csv(summary.macrophomina.xx, file = "outputs/sclerotium.summary. EC50.csv")
+
+```
+
