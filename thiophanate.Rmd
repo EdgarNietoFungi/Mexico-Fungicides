@@ -139,7 +139,7 @@ sclerotium.yy <-
 summary.sclerotium.yy <-summary(sclerotium.yy)
 
 write.csv(sclerotium.yy, file = "outputs/sclerotium.EC50.csv") 
-write.csv(summary.macrophomina.xx, file = "outputs/sclerotium.summary. EC50.csv")
+write.csv(summary.sclerotium.yy, file = "outputs/sclerotium.summary. EC50.csv")
 
 ```
 
