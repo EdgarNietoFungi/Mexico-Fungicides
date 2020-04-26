@@ -3,9 +3,9 @@ title: "Thiophanate.Mexico"
 author: "Nieto_Lopez"
 date: "3/22/2020"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, set packages, warning= FALSE, include=FALSE}
