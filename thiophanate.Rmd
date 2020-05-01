@@ -110,8 +110,8 @@ macrophomina.xx <-
    
 summary.macrophomina.xx <-summary(macrophomina.xx)
 
-write.csv(macrophomina.xx, file = "outputs/macrophomina.EC50.csv") 
-write.csv(summary.macrophomina.xx, file = "outputs/macrophomina.summary. EC50.csv") 
+write.csv(macrophomina.xx, file = "outputs/thiophanate.methyl.macrophomina.EC50.csv") 
+write.csv(summary.macrophomina.xx, file = "outputs/thiophanate.methyl.macrophomina.summary. EC50.csv") 
 
 ```
 ## Analyses 
@@ -129,7 +129,7 @@ summary(AOV.1)
 #P value of 0.805, there is no difference 
 #ANOVA
  macrophomina.xx %>% ggplot( aes(x= ID, y=EC50))+ geom_point() 
-ggsave("macrophomina.xx.png")
+ggsave("thiophanate.methyl.macrophomina.xx.png")
 
 ```
 
@@ -159,8 +159,8 @@ sclerotium.yy <-
    
 summary.sclerotium.yy <-summary(sclerotium.yy)
 
-write.csv(sclerotium.yy, file = "outputs/sclerotium.EC50.csv") 
-write.csv(summary.sclerotium.yy, file = "outputs/sclerotium.summary. EC50.csv")
+write.csv(sclerotium.yy, file = "outputs/thiophanate.methyl.sclerotium.EC50.csv") 
+write.csv(summary.sclerotium.yy, file = "outputs/thiophanate.methyl.sclerotium.summary. EC50.csv")
 
 ```
 ## Analyses
@@ -187,6 +187,6 @@ object.1[[3]][[1]]
 sclerotium.yy %>% ggplot( aes(x= ID, y=EC50)) + geom_point() + expand_limits( y = c(0, 27000)) +scale_y_continuous(
 breaks = c(0, 500, 1000, 2000,  3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000))
 
-ggsave("sclerotium.yy.png")
+ggsave("thiophanate.methyl.sclerotium.yy.png")
 ```
 
