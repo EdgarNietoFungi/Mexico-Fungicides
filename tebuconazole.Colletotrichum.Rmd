@@ -1,0 +1,394 @@
+---
+title: "Fungicides.Colletotrichum.Mexico"
+author: "Nieto_Lopez"
+date: "3/22/2020"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, set packages, warning= FALSE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ezec)
+#library(NRES803)
+library(broom)
+library(ggridges)
+library(cowplot)
+library(gridExtra)
+library(kableExtra)
+library(arsenal)
+library(DescTools)
+library(knitr)
+library(agricolae)
+```
+
+#  Background   
+
+
+
+
+
+```{r read data}
+#Reading function
+reading_data <- function(filename){
+  data <-
+  read.csv(filename)
+ # data <- subset(data, select = -X)
+  data$repeats <- rep_len(1:3, length.out = nrow(data))
+  
+  data <- data %>%
+         mutate(polar= replace(growth, growth == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
+     group_by(ID, experimental_replicate, concentration, growth, repeats) %>%
+  rename(dose = concentration )
+  }
+###  Reading and subsetting data
+
+Benomyl.Colletotrichum.data <-
+  reading_data("data/Benomyl.Colletotrichum.csv")
+Carbendazim.Colletotrichum.data <-
+  reading_data("data/Carbendazim.Colletotrichum.csv")
+Azoxystrobin.Colletotrichum.data <-
+  reading_data("data/Azoxystrobin.Colletotrichum.csv")
+Kresoximmethyl.Colletotrichum.data <-
+  reading_data("data/Kresoximmethyl.Colletotrichum.csv")
+Prochloraz.Colletotrichum.data <-
+  reading_data("data/Prochloraz.Colletotrichum.csv")
+
+
+
+ 
+```
+
+##  Statistic Analysis 
+
+
+In the following section we will show the results for each fungicide
+
+
+```{r function to take outliers from 6 observations}
+# First function to move away outliers
+get_range <- function(mynumber) {
+  bb <- boxplot.stats(mynumber)
+  cc <- bb$stats
+  dd <- max(cc)
+  ee <- min(cc)
+  return(data.frame(upper = dd, lower = ee))
+}
+
+# Second function to get EC50
+
+getting_EC50 <- function(filename){
+  
+  getting.EC50 <- EC_table(filename, form = response ~ dose)
+getting.EC50 <- getting.EC50 %>% 
+  rename(ID = sample ) %>% # renaming
+  rename(EC50 = Estimate.50) %>%
+  mutate(ID = as.factor(ID))
+}
+
+```
+#  Benomyl
+## Serial dilution
+
+```{r Serial dilution Macrophomina,  warning=FALSE}
+# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+Benomyl.filtered  <- Benomyl.Colletotrichum.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>%
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+#Using the function to get eEC50 and summarizing
+Benomyl.Colletotrichum.EC50 <- getting_EC50(Benomyl.filtered) 
+
+summary.Benomyl.Colletotrichum.EC50 <-summary(Benomyl.Colletotrichum.EC50)
+
+write.csv(Benomyl.Colletotrichum.EC50, file = "outputs/Benomyl.Colletotrichum.EC50.csv")
+write.csv(summary.Benomyl.Colletotrichum.EC50, file = "outputs/Benomyl.Colletotrichum.summary.EC50.csv")
+
+```
+## Analyses 
+```{r Analyses }
+##NORMALITY TEST-Shapiro_test
+
+shapiro.test.Benomyl.Colletotrichum <- Benomyl.Colletotrichum.EC50 %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.Benomyl.Colletotrichum[[2]][[1]]
+  # they are NO normal 6.289735e-05 ,  thats is why  krusKal
+#by ID
+
+object.1 <- kruskal.test(SE.50 ~ ID, data = Benomyl.Colletotrichum.EC50)
+object.1[[3]][[1]]
+  
+#There is no difference p-value = 0.4811917
+  
+  
+  Benomyl.Colletotrichum.EC50 %>% ggplot( aes(x= ID, y=EC50)) + geom_point() + expand_limits( y = c(0, 0.55)) +scale_y_continuous(
+ breaks = c(0, 0.5, 0.1, 0.2,  0.3, 0.4, 0.5, 0.55))
+
+#ggsave("tebuconazole.sclerotium.EC50.png")
+  
+ 
+```
+
+# Carbendazim
+##  Serial Dilution
+```{r Serial dilution Macrophomina,  warning=FALSE}
+# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+Carbendazim.filtered  <- Carbendazim.Colletotrichum.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>%
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+#Using the function to get eEC50 and summarizing
+Carbendazim.Colletotrichum.EC50 <- getting_EC50(Carbendazim.filtered) 
+
+summary.Carbendazim.Colletotrichum.EC50 <-summary(Carbendazim.Colletotrichum.EC50)
+
+write.csv(Carbendazim.Colletotrichum.EC50, file = "outputs/Carbendazim.Colletotrichum.EC50.csv")
+write.csv(summary.Carbendazim.Colletotrichum.EC50, file = "outputs/Carbendazim.Colletotrichum.summary.EC50.csv")
+```
+
+
+## Analyses 
+```{r Analyses }
+##NORMALITY TEST-Shapiro_test
+
+shapiro.test.Carbendazim.Colletotrichum <- Carbendazim.Colletotrichum.EC50 %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.Carbendazim.Colletotrichum[[2]][[1]]
+  #They are Normla 0.5851232, 
+#by ID
+
+ #### ANOVA
+AOV.1 <- (aov (EC50 ~ ID, data = Carbendazim.Colletotrichum.EC50))
+summary(AOV.1)
+# Check this because Estimated effects may be unbalanced
+#ANOVA
+ #.EC50 %>% ggplot( aes(x= ID, y=EC50))+ geom_point()
+#ggsave("..EC50.png")
+
+```
+
+#  Linear model of MBCs
+```{r}
+
+MBC1.EC50 <- Benomyl.Colletotrichum.EC50 %>% 
+  select(ID, EC50) %>% 
+  mutate(logEC50 = log(EC50)) %>% 
+  rename(logEC50.Benomyl= logEC50 )
+
+MBC2.EC50 <- Carbendazim.Colletotrichum.EC50 %>% 
+  select(ID, EC50) %>% 
+  mutate(logEC50 = log(EC50)) %>% 
+  rename(logEC50.Carbendazim= logEC50 )
+
+MBC.EC50 <- MBC1.EC50 %>%
+  left_join (MBC2.EC50, by = "ID") %>%
+  drop_na(logEC50.Carbendazim)
+
+# linear model
+LM.MBC.EC50 <- lm( logEC50.Benomyl ~ logEC50.Carbendazim, MBC.EC50)
+  summary(LM.MBC.EC50)
+  plot(LM.MBC.EC50)
+ 
+  fig.1 <-    ggplot(LM.MBC.EC50, aes(x = logEC50.Benomyl, y = logEC50.Carbendazim)) +  geom_point() + geom_smooth(method = "lm") +  theme(
+    plot.title = element_text(
+    size = 8,
+    face = "bold",
+    hjust = 0.5,
+    family = "Arial"
+    ),
+    axis.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.text = element_text(
+    face = "bold",
+    size = 14,
+    family = "Arial"
+    ),
+    panel.background = element_rect(fill = "white", colour = "grey50")
+    ) + labs(title = "Linear regression between log EC50 values of Benomyl & log EC50 values of Carbendazim in Colletotrichum", x =
+    "log EC50 values of Benomyl", y = "log EC50 values of Carbendazim")
+    
+```
+
+#  Azoxystrobin
+## Serial dilution
+
+```{r Serial dilution Macrophomina,  warning=FALSE}
+# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+Azoxystrobin.filtered  <- Azoxystrobin.Colletotrichum.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>%
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+#Using the function to get eEC50 and summarizing
+Azoxystrobin.Colletotrichum.EC50 <- getting_EC50(Azoxystrobin.filtered) 
+ 
+
+summary.Azoxystrobin.Colletotrichum.EC50  <-summary(Azoxystrobin.Colletotrichum.EC50 )
+
+write.csv(Azoxystrobin.Colletotrichum.EC50, file = "outputs/Azoxystrobin.Colletotrichum.EC50.csv")
+write.csv(summary.Azoxystrobin.Colletotrichum.EC50, file = "outputs/summary.Azoxystrobin.Colletotrichum.EC50.csv")
+
+```
+## Analyses 
+```{r Analyses }
+##NORMALITY TEST-Shapiro_test
+
+shapiro.test.Azoxystrobin.Colletotrichum <- Azoxystrobin.Colletotrichum.EC50 %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.Azoxystrobin.Colletotrichum[[2]][[1]]
+  # They are No Normal, p = 3.234243e-15,  thats is why  krusKal
+#by ID
+
+object.2 <- kruskal.test(EC50 ~ ID, data = Azoxystrobin.Colletotrichum.EC50)
+object.2[[3]][[1]]
+  
+#There is no difference p-value = 0.4811917
+  
+  
+
+
+
+```
+
+#  Kresoximmethyl
+## Serial dilution
+
+```{r Serial dilution Macrophomina,  warning=FALSE}
+# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+Kresoximmethyl.filtered  <- Kresoximmethyl.Colletotrichum.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>%
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+#Using the function to get eEC50 and summarizing
+Kresoximmethyl.Colletotrichum.EC50 <- getting_EC50(Kresoximmethyl.filtered) 
+
+summary.Kresoximmethyl.Colletotrichum.EC50 <-summary(Kresoximmethyl.Colletotrichum.EC50)
+
+write.csv(Kresoximmethyl.Colletotrichum.EC50, file = "outputs/Kresoximmethyl.Colletotrichum.EC50.csv")
+write.csv(summary.Kresoximmethyl.Colletotrichum.EC50, file = "outputs/summary.Kresoximmethyl.Colletotrichum.EC50.csv")
+
+```
+## Analyses 
+```{r Analyses }
+##NORMALITY TEST-Shapiro_test
+
+shapiro.test.Kresoximmethyl.Colletotrichum <- Kresoximmethyl.Colletotrichum.EC50 %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.Kresoximmethyl.Colletotrichum[[2]][[1]]
+  #surprisingly they are normal, p = 6.572405e-12
+
+  # I need to check this because estimated effects maybe unbalanced
+AOV.2 <- (aov (EC50 ~ ID, data = Kresoximmethyl.Colletotrichum.EC50))
+summary(AOV.2)
+
+#ANOVA
+ #.EC50 %>% ggplot( aes(x= ID, y=EC50))+ geom_point()
+#ggsave("..EC50.png")
+
+```
+
+#  Linear model of QoIs
+```{r}
+
+QoI1.EC50 <- Azoxystrobin.Colletotrichum.EC50 %>% 
+  select(ID, EC50) %>% 
+  mutate(logEC50 = log(EC50)) %>% 
+  rename(logEC50.Azoxystrobin= logEC50 )
+
+QoI2.EC50 <- Kresoximmethyl.Colletotrichum.EC50 %>% 
+  select(ID, EC50) %>% 
+  mutate(logEC50 = log(EC50)) %>% 
+  rename(logEC50.Kresoximmethyl= logEC50 )
+
+QoI1.EC50 <- QoI1.EC50 %>%
+  left_join (QoI2.EC50, by = "ID") %>% 
+  drop_na(logEC50.Kresoximmethyl)
+  
+
+# linear model
+LM.QoI.EC50 <- lm(logEC50.Azoxystrobin ~ logEC50.Kresoximmethyl, QoI1.EC50)
+  summary(LM.MBC.EC50)
+  plot(LM.MBC.EC50)
+ 
+  fig.2 <-    ggplot(LM.QoI.EC50, aes(x = logEC50.Azoxystrobin, y = logEC50.Kresoximmethyl)) +  geom_point() + geom_smooth(method = "lm") +  theme(
+    plot.title = element_text(
+    size = 8,
+    face = "bold",
+    hjust = 0.5,
+    family = "Arial"
+    ),
+    axis.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.text = element_text(
+    face = "bold",
+    size = 14,
+    family = "Arial"
+    ),
+    panel.background = element_rect(fill = "white", colour = "grey50")
+    ) + labs(title = "Linear regression between log EC50 values of Azoxystrobin & log EC50 values of Kresoximmethyl in Colletotrichum", x =
+    "log EC50 values of Azoxystrobin ", y = "log EC50 values of Kresoximmethyl") 
+  
+    
+```
+
+#  Prochloraz
+## Serial dilution
+
+```{r Serial dilution Macrophomina,  warning=FALSE}
+# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+Prochloraz.filtered  <- Prochloraz.Colletotrichum.data %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>%
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+
+#Using the function to get eEC50 and summarizing
+Prochloraz.Colletotrichum.EC50 <- getting_EC50(Prochloraz.filtered) 
+
+summary.Prochloraz.Colletotrichum.EC50 <-summary(Prochloraz.Colletotrichum.EC50)
+
+write.csv(Prochloraz.Colletotrichum.EC50, file = "outputs/Prochloraz.Colletotrichum.EC50.csv")
+write.csv(summary.Prochloraz.Colletotrichum.EC50, file = "outputs/summary.Prochloraz.Colletotrichum.EC50.csv")
+
+```
+## Analyses 
+```{r Analyses }
+##NORMALITY TEST-Shapiro_test
+
+shapiro.test.Prochloraz.Colletotrichum <- Prochloraz.Colletotrichum.EC50 %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.Prochloraz.Colletotrichum[[2]][[1]]
+  #They are NO Normal, p= 5.901447e-05,  thats is why  krusKal
+#by ID
+
+object.3 <- kruskal.test(EC50 ~ ID, data = Prochloraz.Colletotrichum.EC50)
+object.3[[3]][[1]]
+
+#There is no difference p-value = 0.4811917
+
+
+```
