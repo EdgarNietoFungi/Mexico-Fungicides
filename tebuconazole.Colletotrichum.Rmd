@@ -123,7 +123,7 @@ shapiro.test.Benomyl.Colletotrichum <- Benomyl.Colletotrichum.EC50 %>%
   # they are NO normal 6.289735e-05 ,  thats is why  krusKal
 #by ID
 
-object.1 <- kruskal.test(SE.50 ~ ID, data = Benomyl.Colletotrichum.EC50)
+object.1 <- kruskal.test(EC50 ~ ID, data = Benomyl.Colletotrichum.EC50)
 object.1[[3]][[1]]
   
 #There is no difference p-value = 0.4811917
