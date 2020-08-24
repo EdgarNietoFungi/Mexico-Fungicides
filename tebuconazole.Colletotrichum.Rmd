@@ -93,8 +93,8 @@ getting.EC50 <- getting.EC50 %>%
 #  Benomyl
 ## Serial dilution
 
-```{r Serial dilution Macrophomina,  warning=FALSE}
-# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+```{r Serial dilution Colletotrichum Benomyl,  warning=FALSE}
+# Colletotrichum Benomyl fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
 Benomyl.filtered  <- Benomyl.Colletotrichum.data %>%
   group_by(ID, dose) %>%
   mutate(growth_range = list(get_range(growth))) %>%
@@ -114,7 +114,7 @@ write.csv(summary.Benomyl.Colletotrichum.EC50, file = "outputs/Benomyl.Colletotr
 
 ```
 ## Analyses 
-```{r Analyses }
+```{r Analyses Colletotrichum Benomyl}
 ##NORMALITY TEST-Shapiro_test
 
 shapiro.test.Benomyl.Colletotrichum <- Benomyl.Colletotrichum.EC50 %>%
@@ -139,8 +139,8 @@ object.1[[3]][[1]]
 
 # Carbendazim
 ##  Serial Dilution
-```{r Serial dilution Macrophomina,  warning=FALSE}
-# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+```{r Serial dilution Colletotrichum Carbendazim,  warning=FALSE}
+# Colletotrichum Carbendazim fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
 Carbendazim.filtered  <- Carbendazim.Colletotrichum.data %>%
   group_by(ID, dose) %>%
   mutate(growth_range = list(get_range(growth))) %>%
@@ -161,7 +161,7 @@ write.csv(summary.Carbendazim.Colletotrichum.EC50, file = "outputs/Carbendazim.C
 
 
 ## Analyses 
-```{r Analyses }
+```{r Analyses Colletotrichum Carbendazim}
 ##NORMALITY TEST-Shapiro_test
 
 shapiro.test.Carbendazim.Colletotrichum <- Carbendazim.Colletotrichum.EC50 %>%
@@ -224,8 +224,8 @@ LM.MBC.EC50 <- lm( logEC50.Benomyl ~ logEC50.Carbendazim, MBC.EC50)
 #  Azoxystrobin
 ## Serial dilution
 
-```{r Serial dilution Macrophomina,  warning=FALSE}
-# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+```{r Serial dilution Colletotrichum Azoxystrobin,  warning=FALSE}
+# Colletotrichum Azoxystrobin fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
 Azoxystrobin.filtered  <- Azoxystrobin.Colletotrichum.data %>%
   group_by(ID, dose) %>%
   mutate(growth_range = list(get_range(growth))) %>%
@@ -246,7 +246,7 @@ write.csv(summary.Azoxystrobin.Colletotrichum.EC50, file = "outputs/summary.Azox
 
 ```
 ## Analyses 
-```{r Analyses }
+```{r Analyses Colletotrichum Azoxystrobin}
 ##NORMALITY TEST-Shapiro_test
 
 shapiro.test.Azoxystrobin.Colletotrichum <- Azoxystrobin.Colletotrichum.EC50 %>%
@@ -269,8 +269,8 @@ object.2[[3]][[1]]
 #  Kresoximmethyl
 ## Serial dilution
 
-```{r Serial dilution Macrophomina,  warning=FALSE}
-# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+```{r Serial dilution Colletotrichum Kresoximmethyl,  warning=FALSE}
+# Colletotrichum Kresoximmethyl fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
 Kresoximmethyl.filtered  <- Kresoximmethyl.Colletotrichum.data %>%
   group_by(ID, dose) %>%
   mutate(growth_range = list(get_range(growth))) %>%
@@ -290,7 +290,7 @@ write.csv(summary.Kresoximmethyl.Colletotrichum.EC50, file = "outputs/summary.Kr
 
 ```
 ## Analyses 
-```{r Analyses }
+```{r Analyses  Colletotrichum Kresoximmethyl}
 ##NORMALITY TEST-Shapiro_test
 
 shapiro.test.Kresoximmethyl.Colletotrichum <- Kresoximmethyl.Colletotrichum.EC50 %>%
@@ -321,15 +321,18 @@ QoI2.EC50 <- Kresoximmethyl.Colletotrichum.EC50 %>%
   mutate(logEC50 = log(EC50)) %>% 
   rename(logEC50.Kresoximmethyl= logEC50 )
 
-QoI1.EC50 <- QoI1.EC50 %>%
-  left_join (QoI2.EC50, by = "ID") %>% 
-  drop_na(logEC50.Kresoximmethyl)
+QoI.EC50 <- QoI1.EC50 %>%
+  inner_join (QoI2.EC50, by = "ID")  
+  
   
 
 # linear model
-LM.QoI.EC50 <- lm(logEC50.Azoxystrobin ~ logEC50.Kresoximmethyl, QoI1.EC50)
-  summary(LM.MBC.EC50)
-  plot(LM.MBC.EC50)
+LM.QoI.EC50 <- lm(logEC50.Azoxystrobin ~ logEC50.Kresoximmethyl, QoI.EC50)
+  summary(LM.QoI.EC50)
+  
+  
+plot(LM.QoI.EC50)
+# We need to take out outliers, $4, 13 & 40 places
  
   fig.2 <-    ggplot(LM.QoI.EC50, aes(x = logEC50.Azoxystrobin, y = logEC50.Kresoximmethyl)) +  geom_point() + geom_smooth(method = "lm") +  theme(
     plot.title = element_text(
@@ -348,14 +351,71 @@ LM.QoI.EC50 <- lm(logEC50.Azoxystrobin ~ logEC50.Kresoximmethyl, QoI1.EC50)
     ) + labs(title = "Linear regression between log EC50 values of Azoxystrobin & log EC50 values of Kresoximmethyl in Colletotrichum", x =
     "log EC50 values of Azoxystrobin ", y = "log EC50 values of Kresoximmethyl") 
   
+  fig.2
     
 ```
+
+**Adjusted R-squared  is `r summary(LM.QoI.EC50)[[9]]`**  
+
+
+```{r}
+#4, 13 & 40 places
+QoI.EC50[4,1]
+QoI.EC50[13,1]
+QoI.EC50[40,1]
+# CHI 11-2, CHI 8-2 & OAX 4-1
+QoI.EC50.2 <-
+  QoI.EC50 %>% filter(!ID %in% c("CHI 11-2","CHI 8-2","OAX 4-1" ))
+
+str(QoI.EC50.2)
+
+# linear model
+LM.QoI.EC50.2 <- lm(logEC50.Azoxystrobin ~ logEC50.Kresoximmethyl, QoI.EC50.2)
+  summary(LM.QoI.EC50.2)
+  
+  
+plot(LM.QoI.EC50.2)
+# We need to take out outliers, 14 & 15 places
+QoI.EC50.2[14,1]
+QoI.EC50.2[15,1]
+#GRO 15-1
+#GRO 5-2
+QoI.EC50.3 <-
+  QoI.EC50.2 %>% filter(!ID == "GRO 5-2",  !ID == "GRO 15-1")
+
+# linear model
+LM.QoI.EC50.3 <- lm(logEC50.Azoxystrobin ~ logEC50.Kresoximmethyl, QoI.EC50.3)
+  summary(LM.QoI.EC50.3)
+ 
+  fig.3 <-    ggplot(LM.QoI.EC50.3, aes(x = logEC50.Azoxystrobin, y = logEC50.Kresoximmethyl)) +  geom_point() + geom_smooth(method = "lm") +  theme(
+    plot.title = element_text(
+    size = 8,
+    face = "bold",
+    hjust = 0.5,
+    family = "Arial"
+    ),
+    axis.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.text = element_text(
+    face = "bold",
+    size = 14,
+    family = "Arial"
+    ),
+    panel.background = element_rect(fill = "white", colour = "grey50")
+    ) + labs(title = "Linear regression between log EC50 values of Azoxystrobin & log EC50 values of Kresoximmethyl in Colletotrichum", x =
+    "log EC50 values of Azoxystrobin ", y = "log EC50 values of Kresoximmethyl") 
+  
+  fig.3
+
+```
+
+By Removing 5 isolates  
+**Adjusted R-squared  is `r summary(LM.QoI.EC50.3)[[9]]` **   
 
 #  Prochloraz
 ## Serial dilution
 
-```{r Serial dilution Macrophomina,  warning=FALSE}
-# Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+```{r Serial dilution Colletotrichum Prochloraz,  warning=FALSE}
+# Colletotrichum Prochloraz fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
 Prochloraz.filtered  <- Prochloraz.Colletotrichum.data %>%
   group_by(ID, dose) %>%
   mutate(growth_range = list(get_range(growth))) %>%
@@ -376,7 +436,7 @@ write.csv(summary.Prochloraz.Colletotrichum.EC50, file = "outputs/summary.Prochl
 
 ```
 ## Analyses 
-```{r Analyses }
+```{r Analyses Colletotrichum Prochloraz}
 ##NORMALITY TEST-Shapiro_test
 
 shapiro.test.Prochloraz.Colletotrichum <- Prochloraz.Colletotrichum.EC50 %>%

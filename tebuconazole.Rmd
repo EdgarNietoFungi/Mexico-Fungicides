@@ -6,6 +6,7 @@ output:
   html_document:
     df_print: paged
   pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, set packages, warning= FALSE, include=FALSE}
@@ -30,43 +31,33 @@ library(agricolae)
 
 
 
-```{r read data, echo = FALSE}
-#
-#  Reading and subsetting data
-macrophomina.data <-
-  read.csv("data/tebuconazole.macrophomina.csv")
- # macrophomina.data <- subset(macrophomina.data, select = -X)
-  macrophomina.data$repeats <- rep_len(1:3, length.out = nrow(macrophomina.data))
-  macrophomina.data$ID <- as.character(macrophomina.data$ID)
+```{r read data}
+#Reading function
+reading_data <- function(filename){
+  data <-
+  read.csv(filename)
+ # data <- subset(data, select = -X)
+  data$repeats <- rep_len(1:3, length.out = nrow(data))
+  data$ID <- as.character(data$ID)
   ####Transforming to $ID to numeric
- macrophomina.data$ID <- as.numeric(macrophomina.data$ID)
+ data$ID <- as.numeric(data$ID)
 
-  macrophomina.data <- macrophomina.data %>%
+  data <- data %>%
          mutate(polar= replace(polar, polar == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
     mutate(ecuatorial= replace(ecuatorial, ecuatorial == 0, 6)) %>% #replacing 0 cm growth for the size of plug that is 0.6
     group_by(ID, experimental_replicate, concentration, ecuatorial, polar, repeats) %>%
     mutate(growth = ((ecuatorial + polar) / 2)) %>%
   rename(dose = concentration )
+  }
+###  Reading and subsetting data
 
-  ####
-  
-  sclerotium.data <-
-  read.csv("data/tebuconazole.sclerotium.rolfsii.csv")
- # sclerotium.data <- subset(sclerotium.data, select = -X)
-  sclerotium.data$repeats <- rep_len(1:3, length.out = nrow(sclerotium.data))
-  sclerotium.data$ID <- as.character(sclerotium.data$ID)
-  ####Transforming to $ID to numeric
- sclerotium.data$ID <- as.numeric(sclerotium.data$ID)
+macrophomina.data <-
+  reading_data("data/tebuconazole.macrophomina.csv")
+sclerotium.data <-
+  reading_data("data/tebuconazole.sclerotium.rolfsii.csv")
+
+
  
-  sclerotium.data <- sclerotium.data %>%
-         mutate(polar= replace(polar, polar == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
-    mutate(ecuatorial= replace(ecuatorial, ecuatorial == 0, 6)) %>% #replacing 0 cm growth for the size of plug that is 0.6
-    group_by(ID, experimental_replicate, concentration, ecuatorial, polar, repeats) %>%
-    mutate(growth = ((ecuatorial + polar) / 2)) %>% 
-  rename(dose = concentration )
-##########
- 
-    
 ```
 
 ##  Statistic Analysis 
@@ -75,7 +66,7 @@ macrophomina.data <-
 In the following section we will show the results for each fungicide
 
 
-```{r function to take outliers from 6 observations, echo = FALSE}
+```{r function to take outliers from 6 observations}
 get_range <- function(mynumber) {
   bb <- boxplot.stats(mynumber)
   cc <- bb$stats
@@ -87,7 +78,7 @@ get_range <- function(mynumber) {
 #  Macrophomina
 ## Serial dilution
 
-```{r Serial dilution Macrophomina, echo= FALSE, warning=FALSE}
+```{r Serial dilution Macrophomina,  warning=FALSE}
 # Macrophomina tebuconazole fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
 macrophomina.filtered  <- macrophomina.data %>%
   group_by(ID, dose) %>%
@@ -98,45 +89,48 @@ macrophomina.filtered  <- macrophomina.data %>%
   ungroup() %>%
   select(c(ID, experimental_replicate, repeats, dose, response))
 
-
-
 # Getting EC50 by EC_table #
-xx <- EC_table(macrophomina.filtered, form = response ~ dose)
 
-macrophomina.xx <-
-  xx %>% rename(ID = sample ) %>% # renaming
+getting_EC50 <- function(filename){
+  
+  getting.EC50 <- EC_table(filename, form = response ~ dose)
+getting.EC50 <- getting.EC50 %>% 
+  rename(ID = sample ) %>% # renaming
   rename(EC50 = Estimate.50) %>%
   mutate(ID = as.factor(ID))
+}
+#Using the function to get eEC50 and summarizing
+macrophomina.EC50 <- getting_EC50(macrophomina.filtered) 
 
-summary.macrophomina.xx <-summary(macrophomina.xx)
+summary.macrophomina.EC50 <-summary(macrophomina.EC50)
 
-write.csv(macrophomina.xx, file = "outputs/tebuconazole.macrophomina.EC50.csv")
-write.csv(summary.macrophomina.xx, file = "outputs/tebuconazole.macrophomina.summary. EC50.csv")
+write.csv(macrophomina.EC50, file = "outputs/tebuconazole.macrophomina.EC50.csv")
+write.csv(summary.macrophomina.EC50, file = "outputs/tebuconazole.macrophomina.summary. EC50.csv")
 
 ```
 ## Analyses 
-```{r}
+```{r Analyses macrophomina}
 ##NORMALITY TEST-Shapiro_test
 
-shapiro.test.macrophomina <- macrophomina.xx %>%
+shapiro.test.macrophomina <- macrophomina.EC50 %>%
     do(tidy(shapiro.test(.$EC50)))
   shapiro.test.macrophomina[[2]][[1]]
   #surprisingly they are normal
 
   #
-AOV.1 <- (aov (EC50 ~ ID, data = macrophomina.xx))
+AOV.1 <- (aov (EC50 ~ ID, data = macrophomina.EC50))
 summary(AOV.1)
 #P value of 0.805, there is no difference
 #ANOVA
- macrophomina.xx %>% ggplot( aes(x= ID, y=EC50))+ geom_point()
-ggsave("tebuconazole.macrophomina.xx.png")
+ macrophomina.EC50 %>% ggplot( aes(x= ID, y=EC50))+ geom_point()
+#ggsave("tebuconazole.macrophomina.EC50.png")
 
 ```
 
 #  Sclerotium
 ## Serial dilution
 
-```{r Serial dilution sclerotium, echo= FALSE, warning=FALSE}
+```{r Serial dilution sclerotium,  warning=FALSE}
 #Sclerotium thiophanate fungicide taking the outliers from the 6 observations of each one USING THE FUCTION 
 sclerotium.filtered  <- sclerotium.data %>%
   group_by(ID, dose) %>%
@@ -147,47 +141,43 @@ sclerotium.filtered  <- sclerotium.data %>%
   ungroup() %>%
   select(c(ID, experimental_replicate, repeats, dose, response))
 
+#Using the function to get eEC50 and summarizing
+
+sclerotium.EC50 <- getting_EC50(sclerotium.filtered)
 
 
-# Getting EC50 by EC_table #
-yy <- EC_table(sclerotium.filtered, form = response ~ dose)
+summary.sclerotium.EC50 <-summary(sclerotium.EC50)
 
-sclerotium.yy <-
-  yy %>% rename(ID = sample ) %>% # renaming
-  rename(EC50 = Estimate.50) %>% 
-  mutate(ID = as.factor(ID))
-   
-summary.sclerotium.yy <-summary(sclerotium.yy)
-
-write.csv(sclerotium.yy, file = "outputs/tebuconazole.sclerotium.EC50.csv") 
-write.csv(summary.sclerotium.yy, file = "outputs/tebuconazole.sclerotium.summary. EC50.csv")
+write.csv(sclerotium.EC50, file = "outputs/tebuconazole.sclerotium.EC50.csv") 
+write.csv(summary.sclerotium.EC50, file = "outputs/tebuconazole.sclerotium.summary. EC50.csv")
 
 ```
 ## Analyses
-```{r}
+```{r Analyses sclerotiorum}
 
 ##NORMALITY TEST-Shapiro_test
 
-# shapiro.test.sclerotium <- sclerotium.yy %>%
-#     do(tidy(shapiro.test(.$EC50)))
-#   shapiro.test.sclerotium[[2]][[1]]
+shapiro.test.sclerotium <- sclerotium.EC50 %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.sclerotium[[2]][[1]]
 #No normals
-  
-  #NO NORMALILTY 0.00000125 , thats is why  krusKal
+
+  #NO NORMALILTY 0.0007752832, thats is why  krusKal
 #by ID
 
-# object.1 <- kruskal.test(EC50 ~ ID, data = sclerotium.yy)
-# object.1[[3]][[1]]
+object.1 <- kruskal.test(EC50 ~ ID, data = sclerotium.EC50)
+object.1[[3]][[1]]
 
-#There no is difference p-value = 0.4579297
+#There is no difference p-value = 0.4731283
 
 #object.2 <-  DunnTest(EC50 ~ ID, data = sclerotium.yy, method = "bonferroni")
-#object.2 
+#object.2
 
-# sclerotium.yy %>% ggplot( aes(x= ID, y=EC50)) + geom_point() + expand_limits( y = c(0, 27000)) +scale_y_continuous(
-# breaks = c(0, 500, 1000, 2000,  3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000))
+ sclerotium.EC50 %>% ggplot( aes(x= ID, y=EC50)) + geom_point() + expand_limits( y = c(0, 0.55)) +scale_y_continuous(
+ breaks = c(0, 0.5, 0.1, 0.2,  0.3, 0.4, 0.5, 0.55))
 
-#ggsave("sclerotium.yy.png")
+#ggsave("tebuconazole.sclerotium.EC50.png")
+
 ```
 
 
