@@ -1,0 +1,127 @@
+---
+title: "Lasiodiplodia_spp_pyrimethanil"
+author: "Nieto_Lopez"
+date: "5/11/2022"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+```{r setup, set packages, warning= FALSE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ezec)
+#library(NRES803)
+library(broom)
+library(ggridges)
+library(cowplot)
+library(gridExtra)
+#library(kableExtra)
+library(arsenal)
+library(DescTools)
+library(knitr)
+library(agricolae)
+```
+
+
+##  Statistic Analysis 
+
+
+In the following section we will show the results for each fungicide
+
+
+```{r function to take outliers from 6 observations}
+# First function to move away outliers
+get_range <- function(mynumber) {
+  bb <- boxplot.stats(mynumber)
+  cc <- bb$stats
+  dd <- max(cc)
+  ee <- min(cc)
+  return(data.frame(upper = dd, lower = ee))
+}
+
+# Second function to get EC50
+
+getting_EC50 <- function(filename){
+  
+  getting.EC50 <- EC_table(filename, form = response ~ dose)
+getting.EC50 <- getting.EC50 %>% 
+  rename(ID = sample ) %>% # renaming
+  rename(EC50 = Estimate.50) %>%
+  mutate(ID = as.factor(ID))
+}
+
+```
+
+
+```{r read data}
+#Reading function
+reading_data <- function(filename){
+  data <-
+  read.csv(filename)
+ # data <- subset(data, select = -X)
+  data$repeats <- rep_len(1:3, length.out = nrow(data))
+  
+  data <- data %>%
+         mutate(polar= replace(growth, growth == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
+     group_by(ID, experimental_replicate, concentration, growth, repeats) %>%
+  rename(dose = concentration )
+  }
+###  Reading and subsetting data
+
+
+lasiodiplodia.spp.pyrimethanil <-
+  reading_data("../data/DATOS SENSIBILIDAD Lasiodiplodia spp_pyrimethanil.csv")
+
+
+
+
+ 
+```
+# pyrimethanil
+##  Serial Dilution
+```{r Serial dilution Colletotrichum pyrimethanil,  warning=FALSE}
+# Colletotrichum pyrimethanil fungicide taking the outliers from the 6 observations of each one USING THE FUCTION
+pyrimethanil.filtered  <- lasiodiplodia.spp.pyrimethanil %>%
+  group_by(ID, dose) %>%
+  mutate(growth_range = list(get_range(growth))) %>%
+  unnest() %>%
+  filter(growth <= upper & growth >= lower) %>%
+  rename(response = growth) %>%
+  ungroup() %>%
+  select(c(ID, experimental_replicate, repeats, dose, response))
+
+#Using the function to get eEC50 and summarizing
+lasiodiplodia.spp.EC50_pyrimethanil <- getting_EC50(pyrimethanil.filtered) 
+
+summary.lasiodiplodia.spp.EC50_pyrimethanil <-summary(lasiodiplodia.spp.EC50_pyrimethanil)
+
+write.csv(lasiodiplodia.spp.EC50_pyrimethanil, file = "../outputs/lasiodiplodia.spp.EC50_pyrimethanil.csv")
+write.csv(summary.lasiodiplodia.spp.EC50_pyrimethanil, file = "../outputs/summary.lasiodiplodia.spp.EC50_pyrimethanil.csv")
+```
+
+## Analyses 
+```{r Analyses Colletotrichum pyrimethanil}
+##NORMALITY TEST-Shapiro_test
+
+shapiro.test.pyrimethanil.lasiodiplodia <- lasiodiplodia.spp.EC50_pyrimethanil %>%
+    do(tidy(shapiro.test(.$EC50)))
+  shapiro.test.pyrimethanil.lasiodiplodia[[2]][[1]]
+  #They are   Normal 0.7489, thats 
+#by ID
+
+object.1 <- kruskal.test(EC50 ~ ID, data = lasiodiplodia.spp.EC50_pyrimethanil)
+object.1[[3]][[1]]
+  
+#There is no difference p-value = 0.42
+  
+  
+  lasiodiplodia.spp.EC50_pyrimethanil %>% ggplot( aes(x= ID, y=EC50)) + geom_point() #+ expand_limits( y = c(0, 0.77)) +scale_y_continuous(
+# breaks = c(0, 0.5, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8 ))
+
+ggsave("lasiodiplodia.spp.EC50_pyrimethanil.png")
+  
+
+
+```
