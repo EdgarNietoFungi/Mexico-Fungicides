@@ -1,3 +1,6 @@
+install.packages("xlsx")
+library("xlsx")
+
 # data <- list(iris, cars, faithful) # using built in r data sets
 # names <- list("iris.csv", "cars.csv", "faithful.csv")
 # 
@@ -18,6 +21,7 @@
 ###very good### start HERHE
 # note: `list.files` can create a list of all files in a folder for you
  
+##Check how CREATE OUTPUTS IN OTHER FOLDER OR MEANWHILE READ DATA@ COPY
 files <- list.files("data2",pattern = ".csv", full.names = T )
  
 
@@ -25,34 +29,87 @@ files <- list.files("data2",pattern = ".csv", full.names = T )
 # names(new_data) <- gsub(".csv", "", files)
 # list2env(new_data, globalenv())
 
- new_data <- lapply(files, reading_data)
-names(new_data) <- gsub(".csv", "", files)
-list2env(new_data, globalenv())
+ data <- lapply(files, reading_data)
+names(data) <- gsub(".csv", "", files)
+list2env(data, globalenv())
 
 
 
- new_data.2 <- lapply(files, reading_data)
-names(new_data.2) <- gsub(".csv", "", files)
-list2env(new_data.2, globalenv())
+#  data.2 <- lapply(files, reading_data)
+# names(new_data.2) <- gsub(".csv", "", files)
+# list2env(new_data.2, globalenv())
 # bb <- list(new_data.2)
 # my idea is to create  list of dataframe s and then with two or 3 functions run a a loop 
 
-filtering <- function(filename){
-data <- data  %>%
-  unnest() %>% 
-  group_by(ID, dose) %>%
-  mutate(growth_range = list(get_range(growth))) %>%
-  tidyr::unnest(cols = c(growth_range)) %>%
-  filter(growth <= upper & growth >= lower) %>%
-  rename(response = growth) %>%
-  ungroup() %>%
-  select(c(ID, experimental_replicate, repeats, dose, response))
-return(data)
+filtering <- function(filename) {
+  data <- filename  %>%
+    group_by(ID, dose) %>%
+    mutate(growth_range = list(get_range(growth))) %>%
+    unnest(cols = c(growth_range)) %>%
+    filter(growth <= upper & growth >= lower) %>%
+    rename(response = growth) %>%
+    ungroup() %>%
+    select(c(ID, experimental_replicate, repeats, dose, response))
+  return(data)
 }
-for(filename in new_data){
-  filtering(filename )
+# for(filename in data){
+#   filtering(filename )
+# }
+#new_data.2 <- lapply(new_data, as_data_frame)
+#lapply(names(new_data), filtering)
+data.2 <- lapply(data, filtering)
+data.3 <- lapply(data.2, getting_EC50)
+
+dir.create("outputs_2")
+path_out <-  "/Users/enieto/Documents/Mexico-Fungicides/outputs_2"
+
+# lapply(data.3, function(x) write.table( data.frame(x), 'test.csv'  , append= T, sep=',' ))
+# for (i in seq_along(data.3)) {
+#   filename = paste(names(data.3)[i], ".csv")
+#   write.csv(path_out, data.3[[i]], filename)
+# }
+for (i in seq_along(data.3)) {
+  filename = paste(names(data.3)[i], "OUTPUT.csv")
+  # dir.create("outputs_2")
+  #dir.create(paste0("folder", i), showWarnings = FALSE)
+  write.csv(data.3[[i]], filename)
+  #file.path(paste0("folder",i)
+  #write.csv(dt[i,], file = paste0("loop_", i, ".csv"))
 }
-lapply(names(new_data), filtering)
+
+summary_EC50 <- function(filename) {
+  data <- filename
+  data <- data %>%
+    summarise_at(vars(EC50), list(
+      Min = min,
+      Mean = mean,
+      Max = max,
+      Sd = sd
+    ), na.rm = TRUE)
+  # A tibble: 2 x 5
+}
+
+data.4 <- lapply(data.3, summary_EC50)
+#summay_data_table<-data.frame(do.call(dplyr::bind_rows, .id = "File", data.4))
+summay_data_table <- data.4 %>%  bind_rows( .id = "NAME",  )
+
+write.csv(summay_data_table, "summay_data_table.csv")
+
+
+mydata %>% 
+  map(~summary(.)) %>% 
+  rbind.data.frame
+
+purrr::map_df(data.3,
+              ~ data.frame(mean = mean(.x$EC50), med = median(.x$EC50)))
+
+function(x){
+  c(mean = mean(x), sd = sd(x))
+}
+my_summary()
+###
+
+summarise_at(vars(EC50), list(Min = min, Mean = mean, Max = max, Sd = sd)na.rm = TRUE)
 ### NOt worthy
 # file_object <- file...
 # exfile_object <- exfile...
@@ -94,7 +151,7 @@ lapply(names(new_data), filtering)
 #     rename(dose = concentration )
 # }
 # 
-# reading_data("../data/thiophanate_rhizoctonia.csv")
+ #reading_data("../data/thiophanate_rhizoctonia.csv")
 
 ##Read files and save R objects using file names from tibble
 #EXMPLE

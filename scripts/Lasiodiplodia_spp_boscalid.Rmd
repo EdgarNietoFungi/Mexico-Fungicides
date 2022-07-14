@@ -67,7 +67,9 @@ reading_data <- function(filename){
   data <- data %>%
          mutate(polar= replace(growth, growth == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
      group_by(ID, experimental_replicate, concentration, growth, repeats) %>%
-  rename(dose = concentration )
+  rename(dose = concentration ) %>% 
+    ungroup()
+  
   }
 ###  Reading and subsetting data
 

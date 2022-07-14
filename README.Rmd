@@ -1,0 +1,126 @@
+---
+title: "Getting multiple EC50 values from csv files"
+output: output= github_document
+date: '2022-07-13'
+---
+
+# These a SUPER EASY WAY TO get EC50 data just substitute you own data with csv files as appear in _folder_ DATA2 with the same format as the TEMPLATE
+
+## Examples used here are recent fungicide sensitivity results from multiple fungicides and for multiple fungi from Mexico about to get published in PEER REVIEW JOURNAL 
+## The main collaborator here is [Dr. Juan Manuel Tovar](https://ciad.edu.mx/dr-juan-manuel-tovar-pedraza/)
+.
+```{r r setup, set packages, warning= FALSE, include=FALSE}
+
+using <- function(...) {
+  libs <- unlist(list(...))
+  req <- unlist(lapply(libs, require, character.only = TRUE))
+  need <- libs[req == FALSE]
+  if (length(need) > 0) {
+    install.packages(need)
+    lapply(need, require, character.only = TRUE)
+  }
+}
+
+using(
+  "tidyverse",
+  "ggplot2",
+  "ezec",
+  "broom",
+  "ggridges",
+  "cowplot",
+  "gridExtra",
+  "arsenal",
+  "DescTools",
+  "knitr",
+  "agricolae"
+)
+
+```
+
+
+```{r Functions}
+#Reading function
+reading_data <- function(filename) {
+  data <-
+    read.csv(filename)
+  # data <- subset(data, select = -X)
+  data$repeats <- rep_len(1:3, length.out = nrow(data))
+    data <- data %>%
+    mutate(polar = replace(growth, growth == 0, 6)) %>%  #replacing 0 cm growth for the size of plug that is 0.6
+    group_by(ID, experimental_replicate, concentration, growth, repeats) %>%
+    rename(dose = concentration)
+}
+
+# Function to move away outliers  
+get_range <- function(mynumber) {
+  bb <- boxplot.stats(mynumber)
+  cc <- bb$stats
+  dd <- max(cc)
+  ee <- min(cc)
+  return(data.frame(upper = dd, lower = ee))
+}
+
+# Function to get EC50
+getting_EC50 <- function(filename) {
+  getting.EC50 <- EC_table(filename, form = response ~ dose)
+  getting.EC50 <- getting.EC50 %>%
+    rename(ID = sample) %>% # renaming
+    rename(EC50 = Estimate.50) %>%
+    mutate(ID = as.factor(ID))
+}
+  
+# Function to filtering
+filtering <- function(filename) {
+  data <- filename  %>%
+    group_by(ID, dose) %>%
+    mutate(growth_range = list(get_range(growth))) %>%
+    unnest(cols = c(growth_range)) %>%
+    filter(growth <= upper & growth >= lower) %>%
+    rename(response = growth) %>%
+    ungroup() %>%
+    select(c(ID, experimental_replicate, repeats, dose, response))
+  return(data)
+}
+
+# Summary function
+summary_EC50 <- function(filename) {
+  data <- filename
+  data <- data %>%
+    summarise_at(vars(EC50), list(
+      Min = min,
+      Mean = mean,
+      Max = max,
+      Sd = sd
+    ), na.rm = TRUE)
+  }
+
+```
+
+```{r Reading Data, echo = TRUE, warning=FALSE}
+##Check how CREATE OUTPUTS IN OTHER FOLDER OR MEANWHILE READ DATA@ COPY
+files <- list.files("data2", pattern = ".csv", full.names = T)
+
+data <- lapply(files, reading_data)
+names(data) <- gsub(".csv", "", files)
+list2env(data, globalenv())
+
+data.2 <- lapply(data, filtering)
+```
+
+```{r EC50 serial dilution, echo=TRUE, warning=FALSE}
+data.3 <- lapply(data.2, getting_EC50)
+
+for (i in seq_along(data.3)) {
+  filename = paste(names(data.3)[i], "OUTPUT.csv")
+    write.csv(data.3[[i]], filename)
+  }
+
+data.4 <- lapply(data.3, summary_EC50)
+
+summay_data_table <- data.4 %>%  bind_rows( .id = "NAME",  )
+summay_data_table
+write.csv(summay_data_table, "summay_data_table.csv")
+
+```
+
+# Now see Data2 folder and all the files with summary results appear ending as "OUTPUT"
